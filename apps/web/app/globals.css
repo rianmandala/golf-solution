@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@gs/tokens/globals.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--gs-font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: var(--gs-radius-sm);
+  --radius-md: var(--gs-radius-md);
+  --radius-lg: var(--gs-radius-lg);
+  --animate-gs-marquee: gs-marquee 28s linear infinite;
+  --animate-hero-progress: hero-progress 6s linear forwards;
+}
+
+@keyframes gs-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Override shadcn defaults with GS placeholders (replace from Figma). */
+:root {
+  --radius: var(--gs-radius-md);
+  --background: var(--gs-color-bg);
+  --foreground: var(--gs-color-fg);
+  --card: var(--gs-color-bg);
+  --card-foreground: var(--gs-color-fg);
+  --popover: var(--gs-color-bg);
+  --popover-foreground: var(--gs-color-fg);
+  --primary: var(--gs-color-primary);
+  --primary-foreground: var(--gs-color-primary-fg);
+  --secondary: var(--gs-color-muted);
+  --secondary-foreground: var(--gs-color-fg);
+  --muted: var(--gs-color-muted);
+  --muted-foreground: var(--gs-color-muted-fg);
+  --accent: var(--gs-color-accent);
+  --accent-foreground: var(--gs-color-accent-fg);
+  --destructive: var(--gs-color-destructive);
+  --border: var(--gs-color-border);
+  --input: var(--gs-color-border);
+  --ring: var(--gs-color-fg);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}

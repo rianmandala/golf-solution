@@ -1,0 +1,51 @@
+/* Placeholder GS tokens — replace from Figma when design system is finalized.
+   Map these into shadcn theme variables; do not ship default zinc aesthetics. */
+
+:root {
+  --gs-color-bg: #ffffff;
+  --gs-color-fg: #111111;
+  --gs-color-muted: #f5f5f5;
+  --gs-color-muted-fg: #767676;
+  --gs-color-border: #e5e5e5;
+  --gs-color-primary: #c8f54a;
+  --gs-color-primary-fg: #111111;
+  --gs-color-accent: #111111;
+  --gs-color-accent-fg: #ffffff;
+  --gs-color-destructive: #b42318;
+  --gs-color-announcement: #1a1a1a;
+  --gs-color-announcement-fg: #ffffff;
+
+  --gs-radius-sm: 2px;
+  --gs-radius-md: 4px;
+  --gs-radius-lg: 8px;
+
+  /* --font-oswald is set by next/font on <html>. Must live at :root scope so
+     Tailwind --font-sans / --gs-font-sans can resolve it (not only on body). */
+  --gs-font-sans: var(--font-oswald), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --gs-font-display: var(--font-oswald), "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --gs-bp-mobile: 768px;
+  --gs-bp-tablet: 1023px;
+  --gs-bp-desktop: 1024px;
+
+  /* shadcn bridge (override defaults) */
+  --background: var(--gs-color-bg);
+  --foreground: var(--gs-color-fg);
+  --card: var(--gs-color-bg);
+  --card-foreground: var(--gs-color-fg);
+  --popover: var(--gs-color-bg);
+  --popover-foreground: var(--gs-color-fg);
+  --primary: var(--gs-color-primary);
+  --primary-foreground: var(--gs-color-primary-fg);
+  --secondary: var(--gs-color-muted);
+  --secondary-foreground: var(--gs-color-fg);
+  --muted: var(--gs-color-muted);
+  --muted-foreground: var(--gs-color-muted-fg);
+  --accent: var(--gs-color-accent);
+  --accent-foreground: var(--gs-color-accent-fg);
+  --destructive: var(--gs-color-destructive);
+  --border: var(--gs-color-border);
+  --input: var(--gs-color-border);
+  --ring: var(--gs-color-fg);
+  --radius: var(--gs-radius-md);
+}
