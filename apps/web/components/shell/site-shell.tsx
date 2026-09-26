@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type } from "@/features/landing/typography";
 import { ix } from "@/features/landing/interactions";
+import { AccountDrawer } from "@/features/account/account-drawer";
 import { MenuDrawer } from "./menu-drawer";
 
 const footerLinks = {
@@ -78,7 +79,38 @@ function HeaderIconLink({
   );
 }
 
-export function SiteHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
+function HeaderIconButton({
+  label,
+  src,
+  onClick,
+}: {
+  label: string;
+  src: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "flex size-11 items-center justify-center rounded-full lg:size-10",
+        ix.iconRound,
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" width={21} height={21} className="size-[21px]" />
+    </button>
+  );
+}
+
+export function SiteHeader({
+  onOpenMenu,
+  onOpenAccount,
+}: {
+  onOpenMenu: () => void;
+  onOpenAccount: () => void;
+}) {
   return (
     <header className="border-b border-solid border-[#e5e5e5] bg-white">
       {/* Compact header until xl */}
@@ -98,7 +130,11 @@ export function SiteHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
           />
         </Link>
         <div className="flex shrink-0 items-center">
-          <HeaderIconLink href="/account" label="Account" src="/landing/icon-account.svg" />
+          <HeaderIconButton
+            label="Account"
+            src="/landing/icon-account.svg"
+            onClick={onOpenAccount}
+          />
           <HeaderIconLink href="/cart" label="Bag" src="/landing/icon-bag.svg" />
         </div>
       </div>
@@ -139,7 +175,11 @@ export function SiteHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
           />
         </form>
         <div className="flex shrink-0 items-center gap-3">
-          <HeaderIconLink href="/account" label="Account" src="/landing/icon-account.svg" />
+          <HeaderIconButton
+            label="Account"
+            src="/landing/icon-account.svg"
+            onClick={onOpenAccount}
+          />
           <HeaderIconLink href="/cart" label="Bag" src="/landing/icon-bag.svg" />
           <Link
             href="/fitting"
@@ -283,14 +323,21 @@ export function SiteFooter() {
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const openMenu = useCallback(() => setMenuOpen(true), []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const openAccount = useCallback(() => {
+    setMenuOpen(false);
+    setAccountOpen(true);
+  }, []);
+  const closeAccount = useCallback(() => setAccountOpen(false), []);
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#111]">
       <AnnouncementBar />
-      <SiteHeader onOpenMenu={openMenu} />
-      <MenuDrawer open={menuOpen} onClose={closeMenu} />
+      <SiteHeader onOpenMenu={openMenu} onOpenAccount={openAccount} />
+      <MenuDrawer open={menuOpen} onClose={closeMenu} onOpenAccount={openAccount} />
+      <AccountDrawer open={accountOpen} onClose={closeAccount} />
       <main className="flex-1">{children}</main>
       <SiteFooter />
     </div>

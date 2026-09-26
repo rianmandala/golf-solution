@@ -12,6 +12,7 @@ import { ix } from "@/features/landing/interactions";
 type MenuDrawerProps = {
   open: boolean;
   onClose: () => void;
+  onOpenAccount: () => void;
 };
 
 type MenuView = "root" | "clubs" | "fitting";
@@ -52,7 +53,7 @@ const fittingQuickLinks = [
 const navItemClass =
   "flex h-[53.25px] w-full items-center justify-between pl-6 pr-[26px] py-[15px] text-left text-[15px] font-bold uppercase leading-[23.25px] tracking-[1.8px] text-[#111] transition-colors duration-200";
 
-export function MenuDrawer({ open, onClose }: MenuDrawerProps) {
+export function MenuDrawer({ open, onClose, onOpenAccount }: MenuDrawerProps) {
   const reduceMotion = useReducedMotion();
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
@@ -195,10 +196,13 @@ export function MenuDrawer({ open, onClose }: MenuDrawerProps) {
                 </Link>
 
                 <div className="relative z-10 ml-auto flex items-center pr-[10px] md:pr-[18px]">
-                  <Link
-                    href="/account"
+                  <button
+                    type="button"
                     aria-label="Account"
-                    onClick={onClose}
+                    onClick={() => {
+                      onClose();
+                      onOpenAccount();
+                    }}
                     className={cn(
                       "flex size-11 items-center justify-center rounded-full",
                       ix.iconRound,
@@ -212,7 +216,7 @@ export function MenuDrawer({ open, onClose }: MenuDrawerProps) {
                       height={22}
                       className="size-[22px]"
                     />
-                  </Link>
+                  </button>
                   <Link
                     href="/cart"
                     aria-label="Bag"
