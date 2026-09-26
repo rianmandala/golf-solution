@@ -17,6 +17,8 @@ build
 # Private notes (local only)
 .notes/
 
+.cursor/
+
 # OS / IDE
 .DS_Store
 *.log
