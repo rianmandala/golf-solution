@@ -6,6 +6,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { ix } from "@/features/landing/interactions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required"),
@@ -17,12 +20,6 @@ type LoginValues = z.infer<typeof loginSchema>;
 type LoginFormProps = {
   onSuccess: (email: string) => void;
 };
-
-const labelClass =
-  "text-[11px] font-bold uppercase leading-[14px] text-[#767676]";
-
-const inputClass =
-  "h-[47px] w-full rounded-[2px] border border-solid border-[#c8c8c8] bg-white px-[14px] py-3 text-[15px] font-normal leading-5 text-[#111] outline-none transition-colors duration-200 placeholder:text-[#111]/55 focus:border-[#111]";
 
 const errorClass = "pt-1 text-[12px] font-normal leading-[17px] text-[#b42318]";
 
@@ -45,37 +42,28 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       noValidate
     >
       <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor="account-email" className={labelClass}>
-          Email
-        </label>
-        <input
+        <Label htmlFor="account-email">Email</Label>
+        <Input
           id="account-email"
           type="text"
           autoComplete="email"
           placeholder="you@email.com"
           aria-invalid={Boolean(errors.email)}
-          className={cn(inputClass, errors.email && "border-[#b42318]")}
           {...register("email")}
         />
         {errors.email ? <p className={errorClass}>{errors.email.message}</p> : null}
       </div>
 
       <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor="account-password" className={labelClass}>
-          Password
-        </label>
+        <Label htmlFor="account-password">Password</Label>
         <div className="relative">
-          <input
+          <Input
             id="account-password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
             aria-invalid={Boolean(errors.password)}
-            className={cn(
-              inputClass,
-              "pr-12",
-              errors.password && "border-[#b42318]",
-            )}
+            className="pr-12"
             {...register("password")}
           />
           <button
@@ -118,15 +106,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         Forgot password?
       </a>
 
-      <button
-        type="submit"
-        className={cn(
-          "flex min-h-12 w-full items-center justify-center border border-solid border-[#111] bg-[#111] px-6 text-[14px] font-semibold uppercase leading-[14px] text-white",
-          ix.btnDark,
-        )}
-      >
+      <Button type="submit" variant="auth" size="auth">
         Log in
-      </button>
+      </Button>
     </form>
   );
 }
@@ -157,48 +139,39 @@ export function SignupForm({ onSuccess }: LoginFormProps) {
       noValidate
     >
       <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor="signup-name" className={labelClass}>
-          Full name
-        </label>
-        <input
+        <Label htmlFor="signup-name">Full name</Label>
+        <Input
           id="signup-name"
           type="text"
           autoComplete="name"
           placeholder="Your name"
           aria-invalid={Boolean(errors.name)}
-          className={cn(inputClass, errors.name && "border-[#b42318]")}
           {...register("name")}
         />
         {errors.name ? <p className={errorClass}>{errors.name.message}</p> : null}
       </div>
 
       <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor="signup-email" className={labelClass}>
-          Email
-        </label>
-        <input
+        <Label htmlFor="signup-email">Email</Label>
+        <Input
           id="signup-email"
           type="text"
           autoComplete="email"
           placeholder="you@email.com"
           aria-invalid={Boolean(errors.email)}
-          className={cn(inputClass, errors.email && "border-[#b42318]")}
           {...register("email")}
         />
         {errors.email ? <p className={errorClass}>{errors.email.message}</p> : null}
       </div>
 
       <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor="signup-password" className={labelClass}>
-          Password
-        </label>
-        <input
+        <Label htmlFor="signup-password">Password</Label>
+        <Input
           id="signup-password"
           type="password"
           autoComplete="new-password"
           placeholder="••••••••"
           aria-invalid={Boolean(errors.password)}
-          className={cn(inputClass, errors.password && "border-[#b42318]")}
           {...register("password")}
         />
         {errors.password ? (
@@ -206,15 +179,9 @@ export function SignupForm({ onSuccess }: LoginFormProps) {
         ) : null}
       </div>
 
-      <button
-        type="submit"
-        className={cn(
-          "flex min-h-12 w-full items-center justify-center border border-solid border-[#111] bg-[#111] px-6 text-[14px] font-semibold uppercase leading-[14px] text-white",
-          ix.btnDark,
-        )}
-      >
+      <Button type="submit" variant="auth" size="auth">
         Sign up
-      </button>
+      </Button>
     </form>
   );
 }

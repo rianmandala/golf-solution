@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { ix } from "@/features/landing/interactions";
 import { useAuth } from "./auth-provider";
 import { LoginForm, SignupForm } from "./login-form";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AccountDrawerProps = {
   open: boolean;
@@ -205,76 +207,79 @@ export function AccountDrawer({ open, onClose }: AccountDrawerProps) {
               ) : (
                 <>
                   <div className="pt-6">
-                    <div
-                      role="tablist"
-                      aria-label="Account"
-                      className="flex border-b border-solid border-[#e5e5e5]"
+                    <Tabs
+                      value={tab}
+                      onValueChange={(value) =>
+                        setTab(value as "login" | "signup")
+                      }
+                      className="gap-0"
                     >
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === "login"}
-                        onClick={() => setTab("login")}
-                        className={cn(
-                          "flex h-10 min-h-10 items-center justify-center px-[18px] text-[15px] font-normal uppercase leading-[23px]",
-                          ix.cursor,
-                          tab === "login"
-                            ? "-mb-px border-b-[3px] border-solid border-[#111] text-[#111]"
-                            : "text-[#767676] transition-colors duration-200 hover:text-[#111]",
-                        )}
+                      <TabsList
+                        variant="line"
+                        className="h-auto w-full justify-start rounded-none border-b border-solid border-[#e5e5e5] bg-transparent p-0"
                       >
-                        Log in
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === "signup"}
-                        onClick={() => setTab("signup")}
-                        className={cn(
-                          "flex h-10 min-h-10 items-center justify-center px-[18px] text-[15px] font-normal uppercase leading-[23px]",
-                          ix.cursor,
-                          tab === "signup"
-                            ? "-mb-px border-b-[3px] border-solid border-[#111] text-[#111]"
-                            : "text-[#767676] transition-colors duration-200 hover:text-[#111]",
-                        )}
-                      >
-                        Sign up
-                      </button>
-                    </div>
-                  </div>
+                        <TabsTrigger
+                          value="login"
+                          className={cn(
+                            "h-10 min-h-10 flex-none rounded-none border-0 bg-transparent px-[18px] text-[15px] font-normal uppercase leading-[23px] text-[#767676] shadow-none",
+                            "after:hidden",
+                            "data-[state=active]:-mb-px data-[state=active]:border-b-[3px] data-[state=active]:border-solid data-[state=active]:border-[#111] data-[state=active]:bg-transparent data-[state=active]:text-[#111] data-[state=active]:shadow-none",
+                            "hover:text-[#111]",
+                            ix.cursor,
+                          )}
+                        >
+                          Log in
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="signup"
+                          className={cn(
+                            "h-10 min-h-10 flex-none rounded-none border-0 bg-transparent px-[18px] text-[15px] font-normal uppercase leading-[23px] text-[#767676] shadow-none",
+                            "after:hidden",
+                            "data-[state=active]:-mb-px data-[state=active]:border-b-[3px] data-[state=active]:border-solid data-[state=active]:border-[#111] data-[state=active]:bg-transparent data-[state=active]:text-[#111] data-[state=active]:shadow-none",
+                            "hover:text-[#111]",
+                            ix.cursor,
+                          )}
+                        >
+                          Sign up
+                        </TabsTrigger>
+                      </TabsList>
 
-                  <div className="flex flex-col gap-[22px] pt-5" role="tabpanel">
-                    {tab === "login" ? (
-                      <LoginForm onSuccess={(email) => login(email, "login")} />
-                    ) : (
-                      <SignupForm onSuccess={(email) => login(email, "signup")} />
-                    )}
+                      <div className="flex flex-col gap-[22px] pt-5">
+                        <TabsContent value="login" className="mt-0">
+                          <LoginForm
+                            onSuccess={(email) => login(email, "login")}
+                          />
+                        </TabsContent>
+                        <TabsContent value="signup" className="mt-0">
+                          <SignupForm
+                            onSuccess={(email) => login(email, "signup")}
+                          />
+                        </TabsContent>
 
-                    <p className="text-center text-[14px] font-light leading-[21.7px] text-[#767676]">
-                      Or continue with
-                    </p>
+                        <p className="text-center text-[14px] font-light leading-[21.7px] text-[#767676]">
+                          Or continue with
+                        </p>
 
-                    <button
-                      type="button"
-                      onClick={() => login("sandika.galih@gmail.com", "google")}
-                      className={cn(
-                        "flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-white shadow-[0_1px_2.5px_rgba(0,0,0,0.1)]",
-                        ix.cursor,
-                        "transition-shadow duration-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]",
-                      )}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/landing/icon-google.svg"
-                        alt=""
-                        width={30}
-                        height={30}
-                        className="size-[30px]"
-                      />
-                      <span className="text-[14px] font-semibold leading-[14px] text-[#111]">
-                        Login with Google
-                      </span>
-                    </button>
+                        <Button
+                          type="button"
+                          variant="soft"
+                          size="soft"
+                          onClick={() =>
+                            login("rian@golfsolutions.id", "google")
+                          }
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src="/landing/icon-google.svg"
+                            alt=""
+                            width={30}
+                            height={30}
+                            className="size-[30px]"
+                          />
+                          Login with Google
+                        </Button>
+                      </div>
+                    </Tabs>
                   </div>
                 </>
               )}

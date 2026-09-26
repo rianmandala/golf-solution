@@ -39,6 +39,12 @@ Personal scratch notes live in `.notes/` (gitignored). Do not commit secrets or 
 - Payments: vendor-agnostic DTOs until BE confirms Xendit/Midtrans
 - Animation: **`motion`** (Framer Motion) for hero carousel, scroll reveals, section carousels. Honor `prefers-reduced-motion`. Do not use GSAP unless product asks.
 
+## UI components — shadcn first
+
+**Prefer shadcn/ui** for interactive primitives (Accordion, Dialog, RadioGroup, Tabs, Select, Checkbox, etc.). Always restyle to match Figma (Oswald, borders, spacing, colors) — never ship the default zinc/shadcn look.
+
+**Custom components only when** shadcn cannot express the Figma interaction or layout without fighting the primitive (e.g. one-off marketing blocks, highly bespoke booking chrome). If unsure, try shadcn + Figma restyle first; fall back to custom only after that fails cleanly.
+
 ## Design fidelity (mandatory) — pixel-perfect
 
 Figma is the **only** source of truth. Implement **exactly** as designed — do not approximate, “close enough,” or invent styles.

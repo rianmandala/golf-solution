@@ -170,6 +170,7 @@ export const CustomerPackageSchema = z.object({
   creditsReserved: z.number().int().nonnegative(),
   validUntil: z.string().datetime(),
 });
+export type CustomerPackage = z.infer<typeof CustomerPackageSchema>;
 
 export const CustomerSchema = z.object({
   id: z.string(),

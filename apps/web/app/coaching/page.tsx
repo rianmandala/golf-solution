@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
+import { CoachTimeStep } from "@/features/coaching/coach-time-step";
+
+export const metadata: Metadata = {
+  title: "Book a session",
+};
+
 export default function Page() {
-  return (
-    <div className="mx-auto max-w-[1440px] px-6 py-12 lg:px-10">
-      <h1 className="text-2xl font-semibold">Coaching</h1>
-      <p className="mt-2 text-muted-foreground">Booking flow scaffold.</p>
-    </div>
-  );
+  return <CoachTimeStep />;
 }
