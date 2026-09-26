@@ -134,7 +134,7 @@ export function DetailsStep() {
   const whenLabel = formatBookingWhen(draft.date, draft.time);
   const selected = options.find((o) => o.id === packageId) ?? options[0];
   const isCredit = packageId === "credit";
-  const isRegular = draft.slotType === "regular";
+  const isByRequest = draft.slotType === "by_request";
   const isCashPath = !isCredit;
 
   const packageSummaryLabel = isCredit
@@ -144,23 +144,14 @@ export function DetailsStep() {
   const cashAmount =
     packageId === "credit" ? 0 : PACKAGE_PRICES[packageId] ?? coach.fromPrice;
 
-  const ctaLabel = isCredit
-    ? "Book now"
-    : isRegular
-      ? "Book now"
-      : "Request this slot";
+  // Figma by-request CTAs use BOOK NOW (same as regular)
+  const ctaLabel = "Book now";
 
   const needsIdentityFields = isCashPath;
   const qrisOpen = paymentPanel === "qris";
   const vaOpen = paymentPanel === "va";
-  const canBookCredit =
-    isAuthenticated && isCredit && hasSessions && isRegular;
-  const canBookCash =
-    isCashPath &&
-    isRegular &&
-    fullName.trim().length > 0 &&
-    // WhatsApp optional in Figma — name required only
-    true;
+  const canBookCredit = isAuthenticated && isCredit && hasSessions;
+  const canBookCash = isCashPath && fullName.trim().length > 0;
 
   function book() {
     if (!draft || !coach) return;
@@ -177,6 +168,7 @@ export function DetailsStep() {
     if (isCredit) {
       const leftAfter =
         creditLeft !== null ? Math.max(0, creditLeft - 1) : null;
+      const requested = isByRequest;
       saveConfirmed({
         ...draft,
         packageId,
@@ -187,9 +179,11 @@ export function DetailsStep() {
         coachName: coach.name,
         whenLabel,
         packageLabel: packageSummaryLabel,
-        paidLabel: `1 SESSIONS — ${leftAfter ?? 0} left`,
+        paidLabel: requested
+          ? "1 SESSIONS — used after approval"
+          : `1 SESSIONS — ${leftAfter ?? 0} left`,
         creditsLeftAfter: leftAfter,
-        status: "CONFIRMED",
+        status: requested ? "REQUESTED" : "CONFIRMED",
         paymentKind: "credit",
       });
       clearDraft();
@@ -197,12 +191,18 @@ export function DetailsStep() {
         slotType: draft.slotType,
         payment: "credit",
       });
-      track(AnalyticsEvent.bookingConfirmed, { ref });
-      router.push(`/coaching/confirmed/${ref}`);
+      if (!requested) {
+        track(AnalyticsEvent.bookingConfirmed, { ref });
+      }
+      router.push(
+        requested
+          ? `/coaching/requested/${ref}`
+          : `/coaching/confirmed/${ref}`,
+      );
       return;
     }
 
-    // Regular + cash → awaiting payment (Figma 45:64949)
+    // Cash (regular or by-request) → awaiting payment per Figma
     saveDraft({
       ...draft,
       packageId,
@@ -610,16 +610,56 @@ export function DetailsStep() {
               </div>
               <div className="flex items-center justify-between py-3">
                 <dt className="text-[12px] font-light text-[#767676]">Total</dt>
-                <dd
-                  className={cn(
-                    "text-right text-[22px] font-normal text-[#111]",
-                    isCredit && "uppercase",
-                  )}
-                >
-                  {totalLabel}
+                <dd className="text-right">
+                  <p
+                    className={cn(
+                      "text-[22px] font-normal leading-[34px] text-[#111]",
+                      isCredit && "uppercase",
+                    )}
+                  >
+                    {totalLabel}
+                  </p>
+                  {isByRequest ? (
+                    <p className="text-[11px] font-normal leading-[17px] tracking-[0.11px] text-[#767676]">
+                      charged after approval
+                    </p>
+                  ) : null}
                 </dd>
               </div>
             </dl>
+
+            {isByRequest ? (
+              <div className="w-full rounded-[2px] border border-dashed border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3.5">
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/coaching/icon-approval-clock.svg"
+                    alt=""
+                    width={15}
+                    height={15}
+                    className="size-[15px] shrink-0"
+                  />
+                  <p className="text-[12px] font-bold leading-[18.6px] tracking-[0.24px] text-[#111]">
+                    Needs {coach.name}&apos;s approval
+                  </p>
+                </div>
+                <ul className="mt-2.5 space-y-1 pl-[15px]">
+                  {[
+                    "Nothing is charged yet",
+                    "Reply by WhatsApp, usually within the hour",
+                    "If declined, pick another slot",
+                  ].map((line) => (
+                    <li
+                      key={line}
+                      className="relative text-[12px] font-light leading-[18px] text-[#767676]"
+                    >
+                      <span className="absolute -left-[11px] top-2 size-[3px] rounded-[1.5px] bg-[#767676] opacity-60" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <Button
               type="button"
@@ -634,9 +674,13 @@ export function DetailsStep() {
               {ctaLabel}
             </Button>
 
-            {isCredit && isRegular ? (
+            {isCredit && !isByRequest ? (
               <p className="text-[12px] font-light leading-[18.6px] text-[#767676]">
                 No payment — this uses 1 credit from your package.
+              </p>
+            ) : isCredit && isByRequest ? (
+              <p className="text-[12px] font-light leading-[18.6px] text-[#767676]">
+                No payment — 1 credit is used once the coach approves.
               </p>
             ) : needsIdentityFields && !fullName.trim() ? (
               <p className="text-[12px] font-light leading-[18.6px] text-[#767676]">

@@ -5,17 +5,16 @@ import { cn } from "@/lib/utils";
 import { ix } from "@/features/landing/interactions";
 
 const STEPS = [
-  { n: 1 as const, label: "Coach & time", href: "/coaching" },
-  { n: 2 as const, label: "Your details", href: "/coaching/details" },
+  { n: 1 as const, label: "Fitter & time", href: "/fitting/book" },
+  { n: 2 as const, label: "Your details", href: "/fitting/book/details" },
 ];
 
-export function BookingStepper({ step }: { step: 1 | 2 }) {
+export function FittingStepper({ step }: { step: 1 | 2 }) {
   return (
     <nav aria-label="Booking steps" className="flex items-center">
       {STEPS.map((s, i) => {
         const isCurrent = s.n === step;
         const isPast = s.n < step;
-        // Only allow going back; no skip-ahead to incomplete steps.
         const canNavigate = isPast;
 
         const circle = (
@@ -79,30 +78,23 @@ export function BookingStepper({ step }: { step: 1 | 2 }) {
   );
 }
 
-export function CoachingPageHeader({
-  step,
-  title = "Book a seassion.",
-}: {
-  step: 1 | 2;
-  /** Match Figma typo on step frames unless corrected later. */
-  title?: string;
-}) {
+export function FittingPageHeader({ step }: { step: 1 | 2 }) {
   return (
     <div className="w-full bg-[#f5f5f5] py-8 md:py-10">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-5 md:flex-row md:items-end md:justify-between md:px-8 lg:px-10">
         <div className="flex max-w-[390px] flex-col gap-3">
           <p className="text-[15px] font-normal uppercase leading-[23px] text-[#111]">
-            Coaching
+            Fitting
           </p>
           <h1 className="-skew-x-[5deg] origin-left text-[40px] font-normal uppercase leading-[1.02] text-[#111] md:text-[56px] md:leading-[57px]">
-            {title}
+            Book a fitting.
           </h1>
-          <BookingStepper step={step} />
+          <FittingStepper step={step} />
         </div>
         <p className="max-w-[323px] text-[15px] font-normal leading-[23px] text-[#767676]">
-          Pick your coach, choose an open slot, and we&apos;ll confirm by
-          WhatsApp. Every session is measured on TrackMan — so progress is a
-          number, not a feeling.
+          Pick your package, choose an open slot with Aaron, and we&apos;ll
+          confirm by WhatsApp. Every swing is measured on TrackMan — so the
+          build matches your numbers.
         </p>
       </div>
     </div>

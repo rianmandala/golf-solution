@@ -65,7 +65,16 @@ export const BY_REQUEST_SLOTS = [
   "21:00",
 ] as const;
 
-export type DayKind = "available" | "closed" | "by_request" | "empty" | "past";
+/** Inclusive: today + next 29 days = 30 bookable days. */
+export const BOOKING_HORIZON_DAYS = 90;
+
+export type DayKind =
+  | "available"
+  | "closed"
+  | "full"
+  | "empty"
+  | "past"
+  | "beyond";
 
 export type CalendarDay = {
   date: string; // YYYY-MM-DD
@@ -75,86 +84,321 @@ export type CalendarDay = {
   label: string | null;
 };
 
-/** Mock month matching Figma: August 2026 (Sat 1 … Mon 31). */
-export function buildAugust2026Calendar(): CalendarDay[] {
-  const days: CalendarDay[] = [];
-  // Leading empties: Mon–Fri before Sat 1
-  for (let i = 0; i < 5; i++) {
-    days.push({ date: "", day: 0, kind: "empty", slotsLeft: null, label: null });
-  }
-
-  const closed = new Set([2, 9, 15, 16, 22, 23, 29, 30]);
-  const byRequest = new Set([16]); // Figma shows Sun 16 as BY REQUEST; also closed styling — prefer by_request
-  closed.delete(16);
-
-  const leftByDay: Record<number, number> = {
-    10: 6,
-    11: 5,
-    12: 4,
-    13: 4,
-    14: 6,
-    17: 5,
-    18: 4,
-    19: 3,
-    20: 4,
-    21: 6,
-    24: 5,
-    25: 4,
-    26: 3,
-    27: 4,
-    28: 5,
-    31: 4,
-  };
-
-  for (let d = 1; d <= 31; d++) {
-    const date = `2026-08-${String(d).padStart(2, "0")}`;
-    if (byRequest.has(d)) {
-      days.push({
-        date,
-        day: d,
-        kind: "by_request",
-        slotsLeft: 2,
-        label: "By request",
-      });
-    } else if (closed.has(d) || d < 10) {
-      // Early Aug greyed in Figma (1–8 past/closed feel)
-      const isWeekendClosed = closed.has(d);
-      days.push({
-        date,
-        day: d,
-        kind: isWeekendClosed || d < 10 ? "closed" : "closed",
-        slotsLeft: null,
-        label: isWeekendClosed || d === 2 || d === 9 ? "Closed" : null,
-      });
-    } else {
-      days.push({
-        date,
-        day: d,
-        kind: "available",
-        slotsLeft: leftByDay[d] ?? 4,
-        label: `${leftByDay[d] ?? 4} left`,
-      });
-    }
-  }
-
-  return days;
-}
-
 export type DaySlots = {
   regular: { time: string; open: boolean }[];
   byRequest: { time: string; open: boolean }[];
 };
 
-export function slotsForDay(date: string): DaySlots {
-  // Default mock: Fri 14 / 21 style — 18:00 taken on some days
-  const take18 = date.endsWith("-14") || date.endsWith("-21");
+export type YearMonth = { year: number; month: number }; // month 1–12
+
+type CoachAvailabilityMock = {
+  /** Extra closed dates as offsets from today (weekends stay open unless listed). */
+  closedOffsets: number[];
+  /** Offsets where every regular slot is taken (by-request may still open). */
+  fullRegularOffsets: number[];
+  /** Offsets where a specific regular time is taken. */
+  takenRegular: { offset: number; times: string[] }[];
+  /** Offsets where a specific by-request time is taken. */
+  takenByRequest: { offset: number; times: string[] }[];
+};
+
+/**
+ * Hardcoded mock until BE availability API exists.
+ * Relative to Jakarta "today" so demos always have a usable window.
+ */
+const COACH_AVAILABILITY: Record<CoachId, CoachAvailabilityMock> = {
+  wonjun: {
+    closedOffsets: [3, 10, 17, 24],
+    fullRegularOffsets: [5],
+    takenRegular: [
+      { offset: 0, times: ["18:00"] },
+      { offset: 1, times: ["10:00", "11:00"] },
+      { offset: 2, times: ["13:00"] },
+      { offset: 4, times: ["17:00", "18:00"] },
+      { offset: 7, times: ["14:00", "15:00"] },
+      { offset: 8, times: ["18:00"] },
+      { offset: 14, times: ["10:00", "16:00", "17:00"] },
+    ],
+    takenByRequest: [
+      { offset: 0, times: ["06:00"] },
+      { offset: 2, times: ["21:00"] },
+      { offset: 5, times: ["06:00", "07:00"] },
+    ],
+  },
+  "shern-wei": {
+    closedOffsets: [2, 9, 16, 23],
+    fullRegularOffsets: [6],
+    takenRegular: [
+      { offset: 0, times: ["10:00", "18:00"] },
+      { offset: 1, times: ["13:00", "14:00"] },
+      { offset: 4, times: ["11:00"] },
+      { offset: 7, times: ["17:00", "18:00"] },
+      { offset: 11, times: ["15:00", "16:00"] },
+      { offset: 18, times: ["10:00", "11:00", "13:00"] },
+    ],
+    takenByRequest: [
+      { offset: 1, times: ["09:00"] },
+      { offset: 6, times: ["19:00", "20:00"] },
+      { offset: 12, times: ["06:00"] },
+    ],
+  },
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+export function toIsoDate(year: number, month: number, day: number): string {
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+/** Calendar date in Asia/Jakarta as YYYY-MM-DD. */
+export function jakartaToday(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+/** Current HH:mm in Asia/Jakarta (24h, zero-padded for string compare). */
+export function jakartaNowHm(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${pad2(Number(hour))}:${pad2(Number(minute))}`;
+}
+
+export function parseIsoDate(iso: string): YearMonth & { day: number } {
+  const [y, m, d] = iso.split("-").map(Number);
+  return { year: y, month: m, day: d };
+}
+
+export function addDaysIso(iso: string, days: number): string {
+  const { year, month, day } = parseIsoDate(iso);
+  const utc = Date.UTC(year, month - 1, day + days, 5, 0, 0);
+  const d = new Date(utc);
+  return toIsoDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+}
+
+export function bookingHorizonEnd(today = jakartaToday()): string {
+  return addDaysIso(today, BOOKING_HORIZON_DAYS - 1);
+}
+
+export function compareIso(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+export function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/** Monday = 0 … Sunday = 6 for YYYY-MM-DD (Jakarta calendar day). */
+export function weekdayMon0(iso: string): number {
+  const { year, month, day } = parseIsoDate(iso);
+  const jsDay = new Date(Date.UTC(year, month - 1, day, 5, 0, 0)).getUTCDay();
+  return (jsDay + 6) % 7;
+}
+
+export function shiftYearMonth(
+  ym: YearMonth,
+  deltaMonths: number,
+): YearMonth {
+  const idx = ym.year * 12 + (ym.month - 1) + deltaMonths;
+  return { year: Math.floor(idx / 12), month: (idx % 12) + 1 };
+}
+
+export function formatMonthTitle(ym: YearMonth): string {
+  const d = new Date(Date.UTC(ym.year, ym.month - 1, 1, 5, 0, 0));
+  return d.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function offsetFromToday(date: string, today: string): number | null {
+  const t0 = parseIsoDate(today);
+  const t1 = parseIsoDate(date);
+  const a = Date.UTC(t0.year, t0.month - 1, t0.day);
+  const b = Date.UTC(t1.year, t1.month - 1, t1.day);
+  return Math.round((b - a) / 86_400_000);
+}
+
+function isClosedDay(coachId: CoachId, date: string, today: string): boolean {
+  const offset = offsetFromToday(date, today);
+  if (offset === null) return false;
+  return COACH_AVAILABILITY[coachId].closedOffsets.includes(offset);
+}
+
+function takenSet(
+  entries: { offset: number; times: string[] }[],
+  offset: number,
+): Set<string> {
+  const set = new Set<string>();
+  for (const row of entries) {
+    if (row.offset === offset) {
+      for (const t of row.times) set.add(t);
+    }
+  }
+  return set;
+}
+
+/**
+ * Hardcoded day slots for a coach + date.
+ * Past clock times on "today" are closed. Outside horizon → all closed.
+ */
+export function slotsForCoachDay(
+  coachId: CoachId,
+  date: string,
+  today = jakartaToday(),
+  nowHm = jakartaNowHm(),
+): DaySlots {
+  const horizonEnd = bookingHorizonEnd(today);
+  const outOfWindow =
+    compareIso(date, today) < 0 || compareIso(date, horizonEnd) > 0;
+  const closed = outOfWindow || isClosedDay(coachId, date, today);
+  const offset = offsetFromToday(date, today) ?? -1;
+  const mock = COACH_AVAILABILITY[coachId];
+  const fullRegular = mock.fullRegularOffsets.includes(offset);
+  const takenRegular = takenSet(mock.takenRegular, offset);
+  const takenByRequest = takenSet(mock.takenByRequest, offset);
+  const isToday = date === today;
+
   return {
     regular: REGULAR_SLOTS.map((time) => ({
       time,
-      open: !(take18 && time === "18:00"),
+      open:
+        !closed &&
+        !fullRegular &&
+        !takenRegular.has(time) &&
+        !(isToday && time <= nowHm),
     })),
-    byRequest: BY_REQUEST_SLOTS.map((time) => ({ time, open: true })),
+    byRequest: BY_REQUEST_SLOTS.map((time) => ({
+      time,
+      open:
+        !closed &&
+        !takenByRequest.has(time) &&
+        !(isToday && time <= nowHm),
+    })),
   };
+}
+
+/** @deprecated Use slotsForCoachDay — kept for any stray imports. */
+export function slotsForDay(date: string): DaySlots {
+  return slotsForCoachDay("wonjun", date);
+}
+
+export function summarizeDay(
+  coachId: CoachId,
+  date: string,
+  today = jakartaToday(),
+  nowHm = jakartaNowHm(),
+): Pick<CalendarDay, "kind" | "slotsLeft" | "label"> {
+  const horizonEnd = bookingHorizonEnd(today);
+  if (compareIso(date, today) < 0) {
+    return { kind: "past", slotsLeft: null, label: null };
+  }
+  if (compareIso(date, horizonEnd) > 0) {
+    return { kind: "beyond", slotsLeft: null, label: null };
+  }
+  if (isClosedDay(coachId, date, today)) {
+    return { kind: "closed", slotsLeft: null, label: "Closed" };
+  }
+
+  const slots = slotsForCoachDay(coachId, date, today, nowHm);
+  const regularOpen = slots.regular.filter((s) => s.open).length;
+  const requestOpen = slots.byRequest.filter((s) => s.open).length;
+
+  if (regularOpen > 0) {
+    return {
+      kind: "available",
+      slotsLeft: regularOpen,
+      label: `${regularOpen} left`,
+    };
+  }
+  if (requestOpen > 0) {
+    // By-request only — no cell label (lives in side panel).
+    return { kind: "available", slotsLeft: 0, label: null };
+  }
+  return { kind: "full", slotsLeft: 0, label: "Full" };
+}
+
+export function isDaySelectable(kind: DayKind): boolean {
+  return kind === "available";
+}
+
+/** Mon-start month grid for one coach. */
+export function buildMonthCalendar(
+  coachId: CoachId,
+  ym: YearMonth,
+  today = jakartaToday(),
+  nowHm = jakartaNowHm(),
+): CalendarDay[] {
+  const days: CalendarDay[] = [];
+  const firstIso = toIsoDate(ym.year, ym.month, 1);
+  const leading = weekdayMon0(firstIso);
+  for (let i = 0; i < leading; i++) {
+    days.push({ date: "", day: 0, kind: "empty", slotsLeft: null, label: null });
+  }
+
+  const dim = daysInMonth(ym.year, ym.month);
+  for (let d = 1; d <= dim; d++) {
+    const date = toIsoDate(ym.year, ym.month, d);
+    const summary = summarizeDay(coachId, date, today, nowHm);
+    days.push({
+      date,
+      day: d,
+      kind: summary.kind,
+      slotsLeft: summary.slotsLeft,
+      label: summary.label,
+    });
+  }
+
+  return days;
+}
+
+/** First selectable day in the 30-day window (today preferred). */
+export function defaultSelectableDate(
+  coachId: CoachId,
+  today = jakartaToday(),
+  nowHm = jakartaNowHm(),
+): string {
+  const end = bookingHorizonEnd(today);
+  let cursor = today;
+  while (compareIso(cursor, end) <= 0) {
+    const { kind } = summarizeDay(coachId, cursor, today, nowHm);
+    if (isDaySelectable(kind)) return cursor;
+    cursor = addDaysIso(cursor, 1);
+  }
+  return today;
+}
+
+export function canNavigateMonth(
+  ym: YearMonth,
+  direction: -1 | 1,
+  today = jakartaToday(),
+): boolean {
+  const horizonEnd = bookingHorizonEnd(today);
+  const next = shiftYearMonth(ym, direction);
+  if (direction < 0) {
+    const todayYm = parseIsoDate(today);
+    return (
+      next.year > todayYm.year ||
+      (next.year === todayYm.year && next.month >= todayYm.month)
+    );
+  }
+  const endYm = parseIsoDate(horizonEnd);
+  return (
+    next.year < endYm.year ||
+    (next.year === endYm.year && next.month <= endYm.month)
+  );
 }
 
 export function packageOptions(coach: Coach, creditLeft: number | null) {
@@ -212,12 +456,16 @@ export function endTime(start: string, durationMinutes = 60): string {
   return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
 }
 
-export function formatBookingWhen(dateIso: string, time: string): string {
+export function formatBookingWhen(
+  dateIso: string,
+  time: string,
+  durationMinutes = 60,
+): string {
   const d = new Date(`${dateIso}T12:00:00`);
   const weekday = d.toLocaleDateString("en-GB", { weekday: "short" });
   const day = d.getDate();
   const month = d.toLocaleDateString("en-GB", { month: "short" });
-  return `${weekday} ${day} ${month}, ${time} - ${endTime(time)}`;
+  return `${weekday} ${day} ${month}, ${time} - ${endTime(time, durationMinutes)}`;
 }
 
 export function formatDayHeading(dateIso: string): string {

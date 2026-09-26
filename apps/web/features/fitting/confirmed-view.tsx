@@ -6,19 +6,19 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { displaySkew } from "@/features/landing/typography";
 import { ix } from "@/features/landing/interactions";
-import { loadConfirmed, type ConfirmedBooking } from "./booking-draft";
+import { loadConfirmed, type ConfirmedFitting } from "./booking-draft";
 
-export function ConfirmedView() {
+export function FittingConfirmedView() {
   const params = useParams<{ bookingRef: string }>();
   const router = useRouter();
-  const [booking, setBooking] = useState<ConfirmedBooking | null>(null);
+  const [booking, setBooking] = useState<ConfirmedFitting | null>(null);
 
   useEffect(() => {
     const ref = params.bookingRef;
     if (!ref) return;
     const b = loadConfirmed(ref);
     if (!b) {
-      router.replace("/coaching");
+      router.replace("/fitting/book");
       return;
     }
     setBooking(b);
@@ -33,7 +33,8 @@ export function ConfirmedView() {
   }
 
   const isRequested = booking.status === "REQUESTED";
-  const coachFirst = booking.coachName.split(" ")[0] ?? booking.coachName;
+  const fitterFirst =
+    booking.fitterName.split(" ")[0] ?? booking.fitterName;
 
   return (
     <section className="mx-auto flex w-full max-w-[1440px] flex-col items-center px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-10">
@@ -57,13 +58,13 @@ export function ConfirmedView() {
             "text-center text-[36px] font-normal leading-[45px] tracking-[0.529px] text-[#111] md:text-[44.084px] md:leading-[44.966px]",
           )}
         >
-          {isRequested ? `Sent to ${coachFirst}` : "Booking confirmed"}
+          {isRequested ? `Sent to ${fitterFirst}` : "Booking confirmed"}
         </h1>
 
         <p className="max-w-[480px] text-center text-[15px] font-light leading-[24.75px] text-[#767676]">
           {isRequested ? (
             <>
-              {coachFirst} confirms this time first. We&apos;ll message{" "}
+              {fitterFirst} confirms this time first. We&apos;ll message{" "}
               <span className="font-bold text-[#111]">{booking.whatsapp}</span>{" "}
               either way — usually within the hour.
             </>
@@ -88,10 +89,10 @@ export function ConfirmedView() {
         <dl className="w-full border-t border-solid border-[#e5e5e5]">
           {(
             [
-              ["Coach", booking.coachName],
+              ["Fitter", booking.fitterName],
               ["Date & time", booking.whenLabel],
               ["Package", booking.packageLabel],
-              [isRequested ? "Price" : "Paid", booking.paidLabel],
+              [isRequested ? "Price" : "Paid", null],
             ] as const
           ).map(([label, value]) => (
             <div
@@ -101,15 +102,24 @@ export function ConfirmedView() {
               <dt className="text-[12px] font-light leading-[18.6px] text-[#767676]">
                 {label}
               </dt>
-              <dd
-                className={cn(
-                  "text-right font-bold text-[#111]",
-                  label === "Paid" || label === "Price"
-                    ? "text-[15px] leading-[23px]"
-                    : "text-[13.5px] leading-[20.925px]",
+              <dd className="text-right font-bold text-[#111]">
+                {value ? (
+                  <span className="text-[13.5px] leading-[20.925px]">
+                    {value}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-baseline gap-1.5">
+                    <span className="text-[15px] font-normal text-[#767676]">
+                      From{" "}
+                      <span className="line-through">
+                        {booking.fromPriceLabel.replace(/^From\s+/i, "")}
+                      </span>
+                    </span>
+                    <span className="text-[22px] font-bold leading-7">
+                      {booking.chargedLabel}
+                    </span>
+                  </span>
                 )}
-              >
-                {value}
               </dd>
             </div>
           ))}
@@ -123,7 +133,7 @@ export function ConfirmedView() {
 
         <div className="flex flex-wrap items-center justify-center gap-5">
           <Link
-            href="/coaching"
+            href="/fitting/book"
             className={cn(
               "inline-flex min-h-12 items-center justify-center rounded-[2px] border border-solid border-[#111] bg-[#111] px-8 text-[12px] font-bold tracking-[0.6px] text-white",
               ix.btnDark,

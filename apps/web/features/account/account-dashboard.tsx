@@ -218,7 +218,7 @@ function DashboardPanel({
           title="In-person fitting"
           body="Experience the difference of a tour-level fitting — personalized, precise, and powered by golf’s most advanced equipment."
           ctaLabel="Book fitting"
-          href="/fitting"
+          href="/fitting/book"
         />
         <PromoCard
           imageSrc="/account/coaching-promo.png"

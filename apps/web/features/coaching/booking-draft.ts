@@ -33,7 +33,8 @@ export type ConfirmedBooking = CoachingDraft & {
   paidLabel: string;
   whatsapp: string;
   creditsLeftAfter: number | null;
-  status: "CONFIRMED";
+  /** Regular confirm vs by-request awaiting coach approval */
+  status: "CONFIRMED" | "REQUESTED";
   paymentKind?: "credit" | "cash";
 };
 

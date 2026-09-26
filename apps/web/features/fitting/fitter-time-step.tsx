@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatRp } from "@gs/format";
@@ -13,23 +11,24 @@ import {
   BookingMonthGrid,
   ByRequestHeading,
 } from "@/features/booking/month-calendar";
-import { CoachingPageHeader } from "./booking-chrome";
+import { FittingPageHeader } from "./booking-chrome";
 import { loadDraft, saveDraft } from "./booking-draft";
 import {
-  buildMonthCalendar,
+  buildFittingMonthCalendar,
   canNavigateMonth,
-  coaches,
-  defaultSelectableDate,
+  defaultFittingSelectableDate,
+  FITTER,
+  FITTING_PACKAGES,
   formatDayHeading,
   formatMonthTitle,
-  getCoach,
+  getFittingPackage,
   isDaySelectable,
   jakartaToday,
   parseIsoDate,
   shiftYearMonth,
-  slotsForCoachDay,
-  summarizeDay,
-  type CoachId,
+  slotsForFittingDay,
+  summarizeFittingDay,
+  type FittingPackageId,
   type SlotType,
   type YearMonth,
 } from "./data";
@@ -37,15 +36,18 @@ import {
 function initialFromDraft() {
   const today = jakartaToday();
   const draft = typeof window !== "undefined" ? loadDraft() : null;
-  const coachId: CoachId =
-    draft?.coachId === "shern-wei" ? "shern-wei" : "wonjun";
+  const packageId: FittingPackageId =
+    draft && getFittingPackage(draft.packageId)
+      ? draft.packageId
+      : "full_bag";
   const date =
-    draft?.date && isDaySelectable(summarizeDay(coachId, draft.date, today).kind)
+    draft?.date &&
+    isDaySelectable(summarizeFittingDay(draft.date, today).kind)
       ? draft.date
-      : defaultSelectableDate(coachId, today);
+      : defaultFittingSelectableDate(today);
   const parsed = parseIsoDate(date);
   return {
-    coachId,
+    packageId,
     date,
     viewMonth: { year: parsed.year, month: parsed.month } satisfies YearMonth,
     time: draft?.time ?? null,
@@ -53,66 +55,46 @@ function initialFromDraft() {
   };
 }
 
-export function CoachTimeStep() {
+export function FitterTimeStep() {
   const router = useRouter();
   const today = useMemo(() => jakartaToday(), []);
-  const [coachId, setCoachId] = useState<CoachId>("wonjun");
+  const [packageId, setPackageId] = useState<FittingPackageId>("full_bag");
   const [viewMonth, setViewMonth] = useState<YearMonth>(() => {
     const t = parseIsoDate(jakartaToday());
     return { year: t.year, month: t.month };
   });
   const [date, setDate] = useState(() =>
-    defaultSelectableDate("wonjun", jakartaToday()),
+    defaultFittingSelectableDate(jakartaToday()),
   );
   const [time, setTime] = useState<string | null>(null);
   const [slotType, setSlotType] = useState<SlotType | null>(null);
 
-  // Restore draft when returning from step 2 (client-only).
   useEffect(() => {
     const init = initialFromDraft();
-    setCoachId(init.coachId);
+    setPackageId(init.packageId);
     setDate(init.date);
     setViewMonth(init.viewMonth);
     setTime(init.time);
     setSlotType(init.slotType);
   }, []);
 
-  const coach = getCoach(coachId)!;
+  const pkg = getFittingPackage(packageId)!;
   const calendar = useMemo(
-    () => buildMonthCalendar(coachId, viewMonth, today),
-    [coachId, viewMonth, today],
+    () => buildFittingMonthCalendar(viewMonth, today),
+    [viewMonth, today],
   );
   const daySlots = useMemo(
-    () => slotsForCoachDay(coachId, date, today),
-    [coachId, date, today],
+    () => slotsForFittingDay(date, today),
+    [date, today],
   );
   const regularOpen = daySlots.regular.filter((s) => s.open).length;
   const requestOpen = daySlots.byRequest.filter((s) => s.open).length;
-  const canContinue = Boolean(coachId && date && time && slotType);
+  const canContinue = Boolean(packageId && date && time && slotType);
   const canPrev = canNavigateMonth(viewMonth, -1, today);
   const canNext = canNavigateMonth(viewMonth, 1, today);
 
-  // Keep selection valid when coach changes.
-  useEffect(() => {
-    const summary = summarizeDay(coachId, date, today);
-    if (isDaySelectable(summary.kind)) return;
-    const next = defaultSelectableDate(coachId, today);
-    setDate(next);
-    const p = parseIsoDate(next);
-    setViewMonth({ year: p.year, month: p.month });
-    setTime(null);
-    setSlotType(null);
-  }, [coachId, date, today]);
-
-  function selectCoach(id: CoachId) {
-    if (id === coachId) return;
-    setCoachId(id);
-    setTime(null);
-    setSlotType(null);
-  }
-
   function selectDate(next: string) {
-    const summary = summarizeDay(coachId, next, today);
+    const summary = summarizeFittingDay(next, today);
     if (!isDaySelectable(summary.kind)) return;
     setDate(next);
     setTime(null);
@@ -126,63 +108,46 @@ export function CoachTimeStep() {
 
   return (
     <>
-      <CoachingPageHeader step={1} />
+      <FittingPageHeader step={1} />
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-[22px] px-5 py-8 md:px-8 lg:px-10 lg:py-10">
-        <section className="flex flex-col gap-[22px] py-4">
+        <section className="flex flex-col gap-5 py-4">
           <h2
             className={cn(
               displaySkew,
               "origin-left w-fit text-[28px] font-medium leading-10 text-[#111] md:text-[34px]",
             )}
           >
-            Pick your coach
+            Pick package
           </h2>
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            {coaches.map((c) => {
-              const selected = c.id === coachId;
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {FITTING_PACKAGES.map((p) => {
+              const active = p.id === packageId;
               return (
                 <button
-                  key={c.id}
+                  key={p.id}
                   type="button"
-                  onClick={() => selectCoach(c.id)}
+                  onClick={() => setPackageId(p.id)}
                   className={cn(
-                    "flex items-center gap-[22px] rounded-[2px] border border-solid bg-white p-5 text-left",
+                    "flex flex-col items-start gap-1.5 border border-solid px-5 py-5 text-left",
                     ix.cursor,
-                    selected
-                      ? "border-[#111]"
-                      : "border-[#e5e5e5] transition-colors duration-200 hover:border-[#111]",
+                    active
+                      ? "border-[#111] bg-[#f5f5f5]"
+                      : "border-[#e5e5e5] bg-white hover:border-[#111]",
                   )}
                 >
-                  <div className="relative size-24 shrink-0 overflow-hidden border border-solid border-[#e5e5e5]">
-                    <Image
-                      src={c.image}
-                      alt={c.name}
-                      fill
-                      className="object-cover object-center"
-                      sizes="96px"
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <p className="text-[22px] font-medium leading-7 text-[#111]">
-                      {c.name}
-                    </p>
-                    <p className="text-[13px] font-normal leading-5 text-[#767676]">
-                      {c.specialism}
-                    </p>
-                    <p className="text-[12px] font-medium leading-[14px] text-[#111]">
-                      From {formatRp(c.fromPrice)} / session
-                    </p>
-                    <Link
-                      href={`/coaching/${c.slug}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className={cn(
-                        "mt-0.5 inline-flex w-fit border-b border-solid border-[#111] text-[14px] font-semibold leading-[14px] text-[#111]",
-                        ix.textUnderline,
-                      )}
-                    >
-                      View profile
-                    </Link>
-                  </div>
+                  <p className="text-[18px] font-medium uppercase leading-7 text-[#111]">
+                    {p.title}
+                  </p>
+                  <p className="flex flex-wrap items-baseline gap-x-1.5 text-[15px] leading-[23px]">
+                    <span className="text-[#767676]">From</span>
+                    <span className="text-[#767676] line-through">
+                      {formatRp(p.fromPrice)}
+                    </span>
+                    <span className="font-bold text-[#111]">Rp 0</span>
+                    <span className="text-[12px] font-medium text-[#111]">
+                      /{p.durationMinutes} mins
+                    </span>
+                  </p>
                 </button>
               );
             })}
@@ -264,7 +229,7 @@ export function CoachTimeStep() {
                 {formatDayHeading(date)}
               </p>
               <p className="pt-1 text-[13px] font-normal leading-5 text-[#767676]">
-                {coach.name} · 60 minutes per session
+                {FITTER.name} · {pkg.durationMinutes} minutes per session
               </p>
 
               <div className="mt-5">
@@ -277,7 +242,7 @@ export function CoachTimeStep() {
                   </span>
                 </div>
                 <p className="pt-1 text-[12px] text-[#767676]">
-                  Pay now — confirmed instantly.
+                  Confirmed instantly — no charge for the fitting.
                 </p>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {daySlots.regular.map((s) => {
@@ -312,7 +277,7 @@ export function CoachTimeStep() {
               <div className="mt-6">
                 <ByRequestHeading openCount={requestOpen} />
                 <p className="pt-1 text-[12px] text-[#767676]">
-                  {coach.name} confirms first, then you pay.
+                  {FITTER.name} confirms first — still free.
                 </p>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {daySlots.byRequest.map((s) => {
@@ -351,14 +316,15 @@ export function CoachTimeStep() {
                 onClick={() => {
                   if (!time || !slotType) return;
                   saveDraft({
-                    coachId,
+                    packageId,
                     date,
                     time,
                     slotType,
-                    packageId: "credit",
-                    notes: "",
+                    notes: loadDraft()?.notes ?? "",
+                    fullName: loadDraft()?.fullName,
+                    whatsapp: loadDraft()?.whatsapp,
                   });
-                  router.push("/coaching/details");
+                  router.push("/fitting/book/details");
                 }}
                 className={cn(
                   "mt-6 flex min-h-12 w-full items-center justify-center border border-solid text-[12px] font-bold uppercase tracking-[0.6px]",
