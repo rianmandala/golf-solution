@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import type { Customer, CustomerPackage } from "@gs/contracts";
 import { track, AnalyticsEvent } from "@/lib/analytics/posthog";
 
@@ -27,8 +28,8 @@ export const DEMO_USERS = {
     persona: "with_sessions" as const,
     email: "rian@golfsolutions.id",
     password: "sessions123",
-    firstName: "Sandika",
-    lastName: "Galih",
+    firstName: "Rian",
+    lastName: "Putra",
     whatsapp: "0811111111",
   },
   no_sessions: {
@@ -82,7 +83,7 @@ export function buildMockCustomer(
   const packages = packagesForPersona(resolved);
 
   return {
-    id: resolved === "no_sessions" ? "cust-ghaist" : "cust-sandika",
+    id: resolved === "no_sessions" ? "cust-ghaist" : "cust-rian",
     firstName: demo.firstName,
     lastName: demo.lastName,
     email: email.trim() || demo.email,
@@ -105,6 +106,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [customer, setCustomer] = useState<AccountSession | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -116,9 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsed?.id && parsed?.email) {
           const persona = parsed.persona ?? resolveDemoPersona(parsed.email);
           const fresh = buildMockCustomer(parsed.email, persona);
-          setCustomer({
-            ...fresh,
+          // Prefer live demo identity (name/whatsapp) over stale localStorage.
+          const next: AccountSession = {
             ...parsed,
+            ...fresh,
             persona,
             packages:
               persona === "no_sessions"
@@ -130,7 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               persona === "no_sessions"
                 ? null
                 : (parsed.package ?? fresh.package),
-          });
+          };
+          setCustomer(next);
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         }
       }
     } catch {
@@ -164,7 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setCustomer(null);
     window.localStorage.removeItem(STORAGE_KEY);
-  }, []);
+    router.push("/");
+  }, [router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

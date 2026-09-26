@@ -120,7 +120,6 @@ export function AccountDashboard() {
               type="button"
               onClick={() => {
                 logout();
-                router.push("/");
               }}
               className={cn(
                 "flex w-full items-center justify-end border-r-[3px] border-solid border-transparent px-[18px] py-3.5 text-[11.5px] font-bold uppercase leading-[17.825px] tracking-[1.15px] text-[#767676]",
@@ -147,7 +146,6 @@ export function AccountDashboard() {
           type="button"
           onClick={() => {
             logout();
-            router.push("/");
           }}
           className={cn(
             "text-[11.5px] font-bold uppercase leading-[17.825px] tracking-[1.15px] text-[#767676]",

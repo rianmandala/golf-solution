@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type } from "@/features/landing/typography";
 import { ix } from "@/features/landing/interactions";
+import { useAuth } from "@/features/account/auth-provider";
 import { AccountDrawer } from "@/features/account/account-drawer";
 import { MenuDrawer } from "./menu-drawer";
 
@@ -107,9 +109,11 @@ function HeaderIconButton({
 export function SiteHeader({
   onOpenMenu,
   onOpenAccount,
+  onBookFitting,
 }: {
   onOpenMenu: () => void;
   onOpenAccount: () => void;
+  onBookFitting: () => void;
 }) {
   return (
     <header className="border-b border-solid border-[#e5e5e5] bg-white">
@@ -181,8 +185,9 @@ export function SiteHeader({
             onClick={onOpenAccount}
           />
           <HeaderIconLink href="/cart" label="Bag" src="/landing/icon-bag.svg" />
-          <Link
-            href="/fitting"
+          <button
+            type="button"
+            onClick={onBookFitting}
             className={cn(
               type.headerCta,
               ix.btnDark,
@@ -190,7 +195,7 @@ export function SiteHeader({
             )}
           >
             Book a Fitting
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -322,22 +327,49 @@ export function SiteFooter() {
 }
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { isAuthenticated, ready } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [afterLoginHref, setAfterLoginHref] = useState<string | null>(null);
+
   const openMenu = useCallback(() => setMenuOpen(true), []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const openAccount = useCallback(() => {
     setMenuOpen(false);
+    setAfterLoginHref(null);
     setAccountOpen(true);
   }, []);
-  const closeAccount = useCallback(() => setAccountOpen(false), []);
+  const closeAccount = useCallback(() => {
+    setAccountOpen(false);
+    setAfterLoginHref(null);
+  }, []);
+
+  const bookFitting = useCallback(() => {
+    if (!ready) return;
+    if (isAuthenticated) {
+      router.push("/fitting/book");
+      return;
+    }
+    setMenuOpen(false);
+    setAfterLoginHref("/fitting/book");
+    setAccountOpen(true);
+  }, [isAuthenticated, ready, router]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#111]">
       <AnnouncementBar />
-      <SiteHeader onOpenMenu={openMenu} onOpenAccount={openAccount} />
+      <SiteHeader
+        onOpenMenu={openMenu}
+        onOpenAccount={openAccount}
+        onBookFitting={bookFitting}
+      />
       <MenuDrawer open={menuOpen} onClose={closeMenu} onOpenAccount={openAccount} />
-      <AccountDrawer open={accountOpen} onClose={closeAccount} />
+      <AccountDrawer
+        open={accountOpen}
+        onClose={closeAccount}
+        afterLoginHref={afterLoginHref}
+      />
       <main className="flex-1">{children}</main>
       <SiteFooter />
     </div>

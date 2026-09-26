@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
@@ -15,16 +16,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type AccountDrawerProps = {
   open: boolean;
   onClose: () => void;
+  /** After a successful login/signup, navigate here then close (e.g. fitting book). */
+  afterLoginHref?: string | null;
 };
 
 type AuthTab = "login" | "signup";
 
-export function AccountDrawer({ open, onClose }: AccountDrawerProps) {
+export function AccountDrawer({
+  open,
+  onClose,
+  afterLoginHref = null,
+}: AccountDrawerProps) {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<AuthTab>("login");
   const { customer, isAuthenticated, login, logout } = useAuth();
+
+  function completeAuth(email: string, source: "login" | "signup" | "google") {
+    login(email, source);
+    if (afterLoginHref) {
+      onClose();
+      router.push(afterLoginHref);
+    }
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -191,6 +207,7 @@ export function AccountDrawer({ open, onClose }: AccountDrawerProps) {
                       type="button"
                       onClick={() => {
                         logout();
+                        onClose();
                       }}
                       className={cn(
                         "inline-flex h-[27px] border-b-2 border-solid border-[#111] font-[Helvetica_Neue,Helvetica,Arial,sans-serif] text-[15px] font-bold uppercase leading-[23.25px] tracking-[0.9px] text-[#111]",
@@ -247,12 +264,12 @@ export function AccountDrawer({ open, onClose }: AccountDrawerProps) {
                       <div className="flex flex-col gap-[22px] pt-5">
                         <TabsContent value="login" className="mt-0">
                           <LoginForm
-                            onSuccess={(email) => login(email, "login")}
+                            onSuccess={(email) => completeAuth(email, "login")}
                           />
                         </TabsContent>
                         <TabsContent value="signup" className="mt-0">
                           <SignupForm
-                            onSuccess={(email) => login(email, "signup")}
+                            onSuccess={(email) => completeAuth(email, "signup")}
                           />
                         </TabsContent>
 
@@ -260,14 +277,7 @@ export function AccountDrawer({ open, onClose }: AccountDrawerProps) {
                           Or continue with
                         </p>
 
-                        <Button
-                          type="button"
-                          variant="soft"
-                          size="soft"
-                          onClick={() =>
-                            login("rian@golfsolutions.id", "google")
-                          }
-                        >
+                        <Button type="button" variant="soft" size="soft">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src="/landing/icon-google.svg"
