@@ -116,7 +116,7 @@ export function SiteHeader({
   onBookFitting: () => void;
 }) {
   return (
-    <header className="border-b border-solid border-[#e5e5e5] bg-white">
+    <header className="sticky top-0 z-50 border-b border-solid border-[#e5e5e5] bg-white">
       {/* Compact header until xl */}
       <div className="relative mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:px-8 lg:px-10 xl:hidden">
         <MenuButton onClick={onOpenMenu} />
